@@ -140,14 +140,37 @@ steps:
     stage: Build Artifacts
     tag: ${{CF_BRANCH_TAG_NORMALIZED}}
     dockerfile: Dockerfile
-    working_directory: ${{main_clone}}/venona
+    disable_push: true
+    working_directory: ${{WORKDIR}}
     image_name: ${{IMAGE_NAME}}
     when:
       steps:
-      - name: compile
+      - name: main_clone
         on:
         - success
 
+  run_arm_build:
+    type: codefresh-run
+    stage: Build Artifacts
+    when:
+      steps:
+      - name: export_version
+        on:
+        - success
+    arguments:
+      PIPELINE_ID: ${{ARM_PIPELINE_ID}}
+      DETACH: false
+      VARIABLE:
+        - CF_REPO_OWNER=${{CF_REPO_OWNER}}
+        - CF_REPO_NAME=${{CF_REPO_NAME}}
+        - CF_REVISION=${{CF_REVISION}}
+        - CF_BRANCH=${{CF_BRANCH}}
+        - CF_BRANCH_TAG_NORMALIZED=${{CF_BRANCH_TAG_NORMALIZED}}
+        - IMAGE_NAME=${{IMAGE_NAME}}
+        - WORKDIR=${{WORKDIR}}
+        - VERSION=${{VERSION}}
+        - ARM_TAG_POSTFIX="${{ARM_TAG_POSTFIX}}"
+        
   security_scan:
     stage: Security scan
     type: parallel
@@ -219,8 +242,7 @@ steps:
     - ${{VERSION}}-${{CF_REVISION}}
     - ${{CF_REVISION}}
     - ${{CF_BRANCH_TAG_NORMALIZED}}
-    image_name: codefresh/venona
-    registry: dockerhub
+    image_name: ${{IMAGE_NAME}}
     when:
       steps:
       - name: build_image
@@ -229,4 +251,11 @@ steps:
       - name: export_version
         on:
         - success
+    scale:
+      push_quay:
+        registry: "${{REGISTRY_INTEGRATION_QUAY}}"
+      push_dockerhub:
+        registry: "${{REGISTRY_INTEGRATION_DOCKERHUB}}"
+      push_gcr_enterprise:
+        registry: "${{REGISTRY_INTEGRATION_ENTERPRISE}}"
 

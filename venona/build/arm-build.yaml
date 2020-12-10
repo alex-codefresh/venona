@@ -1,0 +1,37 @@
+version: "1.0"
+
+steps: 
+  main_clone:
+    title: 'Cloning main repository...'
+    type: git-clone
+    repo: ${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}
+    revision: ${{CF_BRANCH}}
+    credentials:
+      username: github
+      password: ${{secrets.hybrid.git}}
+
+  build_image:
+    title: "Building the image..."
+    type: build
+    disable_push: true
+    working_directory: ${{WORKDIR}}
+    dockerfile: ./Dockerfile
+    image_name: ${{IMAGE_NAME}}
+    tag: ${{CF_BRANCH_TAG_NORMALIZED}}
+
+  push:
+    title: "Pushing image to registry"
+    type: push
+    candidate: ${{build_image}}
+    tags:
+      - ${{VERSION}}-${{CF_BRANCH_TAG_NORMALIZED}}${{ARM_TAG_POSTFIX}}
+      - ${{VERSION}}-${{CF_REVISION}}${{ARM_TAG_POSTFIX}}
+      - ${{CF_REVISION}}${{ARM_TAG_POSTFIX}}
+      - ${{CF_BRANCH_TAG_NORMALIZED}}${{ARM_TAG_POSTFIX}}
+    scale:
+      push_quay_dev:
+        registry: "${{REGISTRY_INTEGRATION_QUAY}}"
+      push_dockerhub_dev:
+        registry: "${{REGISTRY_INTEGRATION_DOCKERHUB}}"
+      push_gcr_enterprise_dev:
+        registry: "${{REGISTRY_INTEGRATION_ENTERPRISE}}"
