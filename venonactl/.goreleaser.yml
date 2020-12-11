@@ -38,7 +38,6 @@ changelog:
 
 release:
   github:
-    owner: codefresh-io
     name: venona
 
   # If set to auto, will mark the release as not ready for production
